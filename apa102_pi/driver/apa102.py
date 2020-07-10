@@ -93,7 +93,10 @@ class APA102:
         self.use_bitbang = False  # Two raw SPI devices exist: Bitbang (software) and hardware SPI.
         self.use_ce = False  # If true, use the BusDevice abstraction layer on top of the raw SPI device
 
-        self.leds = [self.LED_START, 0, 0, 0] * self.num_led  # Pixel buffer
+        self.leds = [0,0,0,0] # Start frame
+        self.leds += [self.LED_START, 0, 0, 0] * self.num_led # Pixel buffer
+        self.leds += [0xff] * ceil(self.num_led/16.0)         # End frame
+
         if ce is not None:
             # If a chip enable value is present, use the Adafruit CircuitPython BusDevice abstraction on top
             # of the raw SPI device (hardware or bitbang)
@@ -201,7 +204,7 @@ class APA102:
         # LED start frame is three "1" bits, followed by 5 brightness bits
         ledstart = (brightness & 0b00011111) | self.LED_START
 
-        start_index = 4 * led_num
+        start_index = 4 * (led_num + 1) # first 4 bytes in buffor used for start frame
         self.leds[start_index] = ledstart
         self.leds[start_index + self.rgb[0]] = red
         self.leds[start_index + self.rgb[1]] = green
@@ -234,11 +237,11 @@ class APA102:
 
         Todo: More than 1024 LEDs requires more than one xfer operation.
         """
-        self.clock_start_frame()
+        # self.clock_start_frame()
         # xfer2 kills the list, unfortunately. So it must be copied first
         # SPI takes up to 4096 Integers. So we are fine for up to 1024 LEDs.
         self.send_to_spi(self.leds)
-        self.clock_end_frame()
+        # self.clock_end_frame()
 
     def cleanup(self):
         """Release the SPI device; Call this method at the end"""
